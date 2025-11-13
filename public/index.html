@@ -1,98 +1,56 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Visa → M-Pesa / eMola — Transfer</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transferência Visa → M-Pesa / eMola</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-50 min-h-screen flex items-center justify-center p-6">
-  <div class="w-full max-w-2xl bg-white rounded-2xl shadow-lg p-6">
-    <h1 class="text-2xl font-bold mb-4">Enviar de Cartão → M-Pesa / eMola</h1>
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+  <div class="bg-white shadow-lg rounded-xl p-6 w-full max-w-md">
+    <h1 class="text-2xl font-bold mb-4 text-center text-blue-600">Transferência Vendorapay</h1>
 
     <form id="transferForm" class="space-y-4">
       <div>
-        <label class="block text-sm font-medium">Método</label>
-        <select name="paymentMethod" id="paymentMethod" class="mt-1 block w-full rounded-md border-gray-300 p-2">
-          <option value="card">Cartão (Visa / MasterCard)</option>
+        <label class="block text-sm font-medium text-gray-700">Método de pagamento</label>
+        <select id="paymentMethod" class="mt-1 w-full border rounded-md p-2">
+          <option value="card">Visa / MasterCard</option>
           <option value="mpesa">M-Pesa</option>
           <option value="emola">eMola</option>
         </select>
       </div>
 
       <div>
-        <label class="block text-sm font-medium">Telefone do beneficiário</label>
-        <input name="recipientPhone" required class="mt-1 block w-full rounded-md border-gray-300 p-2" placeholder="Ex: 841234567" />
+        <label class="block text-sm font-medium text-gray-700">Telefone do destinatário</label>
+        <input type="text" id="recipientPhone" class="mt-1 w-full border rounded-md p-2" placeholder="84xxxxxxx" required>
       </div>
 
       <div>
-        <label class="block text-sm font-medium">Valor (MT)</label>
-        <input name="amount" type="number" min="1" required class="mt-1 block w-full rounded-md border-gray-300 p-2" placeholder="Ex: 2500" />
+        <label class="block text-sm font-medium text-gray-700">Valor (MT)</label>
+        <input type="number" id="amount" class="mt-1 w-full border rounded-md p-2" placeholder="Ex: 500" required>
       </div>
 
-      <div>
-        <label class="block text-sm font-medium">Nome (opcional)</label>
-        <input name="customerName" class="mt-1 block w-full rounded-md border-gray-300 p-2" placeholder="Nome do cliente (opcional)" />
-      </div>
-
-      <div class="flex items-center justify-between">
-        <button id="submitBtn" type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Enviar</button>
-        <div id="status" class="text-sm text-gray-600"></div>
-      </div>
-
-      <p class="text-xs text-gray-500 mt-2">
-        Nota: para pagamentos por cartão este exemplo usa **checkout hospedado** do Vendorapay (redirect). Em produção, preferível usar Hosted Fields/tokenização.
-      </p>
+      <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition">Enviar</button>
+      <div id="response" class="text-sm text-gray-700 mt-2"></div>
     </form>
   </div>
 
   <script>
-    const form = document.getElementById('transferForm');
-    const statusEl = document.getElementById('status');
-
-    form.addEventListener('submit', async (e) => {
+    document.getElementById('transferForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      statusEl.textContent = 'Processando...';
-
-      const fd = new FormData(form);
       const data = {
-        paymentMethod: fd.get('paymentMethod'),
-        recipientPhone: fd.get('recipientPhone'),
-        amount: parseFloat(fd.get('amount')),
-        currency: 'MZN',
-        customer: { name: fd.get('customerName') || null }
+        paymentMethod: document.getElementById('paymentMethod').value,
+        recipientPhone: document.getElementById('recipientPhone').value,
+        amount: document.getElementById('amount').value
       };
 
-      try {
-        const resp = await fetch('/api/transfer', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
-
-        const j = await resp.json();
-
-        if (!resp.ok) {
-          console.error(j);
-          statusEl.textContent = j.message || 'Erro no pagamento';
-          return;
-        }
-
-        // Se Vendorapay retornar redirectUrl para checkout hospedado (cartão)
-        if (j.redirectUrl) {
-          statusEl.textContent = 'Redirecionando para checkout...';
-          // deixa o usuário ir ao checkout do Vendorapay
-          window.location.href = j.redirectUrl;
-          return;
-        }
-
-        // Mobile payments: mostra detalhes
-        statusEl.textContent = j.message || 'Operação iniciada';
-        console.log('Resposta:', j);
-      } catch (err) {
-        console.error(err);
-        statusEl.textContent = 'Erro no servidor';
-      }
+      const res = await fetch('/api/transfer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      const json = await res.json();
+      document.getElementById('response').innerText = JSON.stringify(json, null, 2);
     });
   </script>
 </body>
